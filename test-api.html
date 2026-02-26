@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HEALX API Test</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #333; text-align: center; }
+        .section { background: white; padding: 20px; margin:20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { color: #0066cc; border-bottom: 2px solid #0066cc; padding-bottom: 10px; }
+        button { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #004499; }
+        .result { background: #f9f9f9; padding: 15px; border-left: 4px solid #0066cc; margin-top: 10px; font-family: monospace; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+        .error { border-left-color: #cc0000; background: #ffe6e6; }
+        .success { border-left-color: #00cc00; background: #e6ffe6; }
+        label { display: block; margin: 10px 0 5px 0; font-weight: bold; }
+        input { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 HEALX API Test Dashboard</h1>
+
+        <div class="section">
+            <h2>📊 Service Status</h2>
+            <button onclick="testHealth()">Test Backend Health</button>
+            <button onclick="testAI()">Test AI Service Health</button>
+            <div id="healthResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>🔐 Demo Login Tests</h2>
+            <div>
+                <label>Demo Email:</label>
+                <select id="demoEmail">
+                    <option value="admin@healx.com">Admin: admin@healx.com</option>
+                    <option value="doctor1@healx.com">Doctor: doctor1@healx.com</option>
+                    <option value="patient1@healx.com">Patient: patient1@healx.com</option>
+                </select>
+            </div>
+            <button onclick="testDemoLogin()">Test Demo Login</button>
+            <div id="demoResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>🔓 Regular Login Tests</h2>
+            <div>
+                <label>Email:</label>
+                <input type="email" id="loginEmail" value="admin@healx.com">
+                <label>Password:</label>
+                <input type="password" id="loginPassword" value="Admin@123456">
+            </div>
+            <button onclick="testLogin()">Test Regular Login</button>
+            <div id="loginResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>💾 AI Service Test</h2>
+            <button onclick="testAISeverity()">Test Severity Prediction</button>
+            <div id="aiResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>🗑️ Browser Storage</h2>
+            <button onclick="viewStorage()">View LocalStorage</button>
+            <button onclick="clearStorage()">Clear LocalStorage</button>
+            <div id="storageResult" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        const AI_URL = 'http://localhost:8000';
+
+        function showResult(elementId, data, isError = false) {
+            const el = document.getElementById(elementId);
+            el.textContent = JSON.stringify(data, null, 2);
+            el.className = `result ${isError ? 'error' : 'success'}`;
+            el.style.display = 'block';
+        }
+
+        async function testHealth() {
+            try {
+                const res = await fetch('http://localhost:5000/health');
+                const data = await res.json();
+                showResult('healthResult', { status: 'Backend OK', statusCode: res.status, data }, false);
+            } catch (err) {
+                showResult('healthResult', { error: err.message }, true);
+            }
+        }
+
+        async function testAI() {
+            try {
+                const res = await fetch(`${AI_URL}/health`);
+                const data = await res.json();
+                showResult('healthResult', { status: 'AI Service OK', statusCode: res.status, data }, false);
+            } catch (err) {
+                showResult('healthResult', { error: 'AI Service unreachable: ' + err.message }, true);
+            }
+        }
+
+        async function testDemoLogin() {
+            try {
+                const email = document.getElementById('demoEmail').value;
+                const res = await fetch(`${API_URL}/auth/demo-login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showResult('demoResult', { 
+                        success: true,
+                        message: 'Demo login successful!',
+                        token: data.token.substring(0, 20) + '...',
+                        user: data.user
+                    }, false);
+                    // Save to localStorage for testing
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                } else {
+                    showResult('demoResult', data, true);
+                }
+            } catch (err) {
+                showResult('demoResult', { error: err.message }, true);
+            }
+        }
+
+        async function testLogin() {
+            try {
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showResult('loginResult', {
+                        success: true,
+                        message: 'Regular login successful!',
+                        token: data.token.substring(0, 20) + '...',
+                        user: data.user
+                    }, false);
+                } else {
+                    showResult('loginResult', data, true);
+                }
+            } catch (err) {
+                showResult('loginResult', { error: err.message }, true);
+            }
+        }
+
+        async function testAISeverity() {
+            try {
+                const res = await fetch(`${AI_URL}/api/predict-severity`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symptoms: ['chest pain', 'shortness of breath'],
+                        vitals: { heartRate: 120, temperature: 38.5, oxygenLevel: 88 }
+                    })
+                });
+                const data = await res.json();
+                showResult('aiResult', { statusCode: res.status, data }, res.ok ? false : true);
+            } catch (err) {
+                showResult('aiResult', { error: err.message }, true);
+            }
+        }
+
+        function viewStorage() {
+            const storage = {};
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    try {
+                        storage[key] = JSON.parse(localStorage[key]);
+                    } catch (e) {
+                        storage[key] = localStorage[key];
+                    }
+                }
+            }
+            showResult('storageResult', storage.length === 0 ? { message: 'Storage is empty' } : storage, false);
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            showResult('storageResult', { message: 'LocalStorage cleared!' }, false);
+        }
+
+        // Test on load
+        window.addEventListener('load', () => {
+            console.log('Test dashboard loaded. Click buttons to test.');
+        });
+    </script>
+</body>
+</html>
