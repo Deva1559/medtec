@@ -17,8 +17,6 @@ Complete guide with cURL examples and test scenarios.
 
 ## 🔑 Getting JWT Token for Testing
 
-### Method 1: Get Token via Login API
-
 ```bash
 # Get JWT token for ABISHEK
 curl -X POST http://localhost:5000/api/auth/login \
