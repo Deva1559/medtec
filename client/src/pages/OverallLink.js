@@ -2,15 +2,17 @@ import React, { useContext, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const FRONTEND_URL = process.env.REACT_APP_FRONTEND_URL || 'http://localhost:3002';
+const AI_SERVICE_URL = process.env.REACT_APP_AI_SERVICE_URL || 'http://localhost:3003';
 
 const OverallLink = () => {
   const { user, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
   const [serviceStatus, setServiceStatus] = useState({
-    frontend: { status: 'online', url: 'http://localhost:3000' },
+    frontend: { status: 'online', url: FRONTEND_URL },
     backend: { status: 'checking', url: API_URL },
-    ai: { status: 'checking', url: 'http://localhost:8000' },
+    ai: { status: 'checking', url: AI_SERVICE_URL },
     database: { status: 'checking', url: 'mongodb://localhost:27017' }
   });
 
@@ -22,7 +24,7 @@ const OverallLink = () => {
       .catch(() => setServiceStatus(prev => ({ ...prev, backend: { ...prev.backend, status: ' offline' } })));
 
     // Check AI service status
-    fetch('http://localhost:8000/health')
+    fetch(`${AI_SERVICE_URL}/health`)
       .then(() => setServiceStatus(prev => ({ ...prev, ai: { ...prev.ai, status: 'online' } })))
       .catch(() => setServiceStatus(prev => ({ ...prev, ai: { ...prev.ai, status: 'offline' } })));
   }, []);
